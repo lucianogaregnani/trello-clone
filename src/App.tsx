@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { DragDropContext, Droppable } from "react-beautiful-dnd";
-import Column from "./components/Column";
+import { DragDropContext, DropResult, Droppable } from "react-beautiful-dnd";
+import Column from "./components/dashboard/Column";
+import { FaPlus } from "react-icons/fa6";
+import AddListButton from "./components/dashboard/AddListButton";
 
 const DATA = [
   {
@@ -10,7 +12,6 @@ const DATA = [
       {
         id: "12123253456",
         description: "Esta es una descripcion",
-        title: "este es un titulo",
       },
     ],
   },
@@ -21,24 +22,20 @@ const DATA = [
       {
         id: "78901234567",
         description: "Otra descripción aquí",
-        title: "Otro título",
       },
       {
         id: "78901234568",
         description: "Descripción adicional",
-        title: "Título adicional",
       },
     ],
   },
   {
     id: "345678",
     title: "Done",
-    listId: "21342334",
     tasks: [
       {
         id: "34567890123",
         description: "Una descripción diferente",
-        title: "Un título diferente",
       },
     ],
   },
@@ -47,9 +44,50 @@ const DATA = [
 function App() {
   const [columns, setColumns] = useState(DATA);
 
+  const handleOnDragEnd = (results: DropResult) => {
+    const { destination, source, type } = results;
+
+    if (!destination) return;
+
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    )
+      return;
+
+    const newColumns = [...columns];
+    if (type === "COLUMN") {
+      const [removedColumn] = newColumns.splice(source.index, 1);
+
+      newColumns.splice(destination.index, 0, removedColumn);
+
+      setColumns(newColumns);
+    } else {
+      const sourceColumnIndex = newColumns.findIndex(
+        (column) => column.id === source.droppableId
+      );
+      const destinationColumnIndex = newColumns.findIndex(
+        (column) => column.id === destination.droppableId
+      );
+
+      const [removedTask] = newColumns[sourceColumnIndex].tasks.splice(
+        source.index,
+        1
+      );
+
+      newColumns[destinationColumnIndex].tasks.splice(
+        destination.index,
+        0,
+        removedTask
+      );
+
+      setColumns(newColumns);
+    }
+  };
+
   return (
-    <DragDropContext onDragEnd={() => {}}>
-      <section className="h-screen flex gap-6 items-center ml-3">
+    <DragDropContext onDragEnd={handleOnDragEnd}>
+      <section className="h-screen flex gap-6 items-start pt-5 ml-3 overflow-x-auto">
         <Droppable droppableId="board" type="COLUMN" direction="horizontal">
           {(provided) => (
             <div
@@ -59,15 +97,18 @@ function App() {
             >
               {columns.map((column, index) => (
                 <Column
+                  id={column.id}
                   key={column.id}
                   index={index}
                   title={column.title}
                   tasks={column.tasks}
                 />
               ))}
+              {provided.placeholder}
             </div>
           )}
         </Droppable>
+        <AddListButton />
       </section>
     </DragDropContext>
   );
